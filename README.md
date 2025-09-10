@@ -27,9 +27,9 @@ This is the final project for the Coursera Course, Flutter and Dart: Developing 
 
 ## Approach
 
-1. Create flutter project
-2. Add models for Project, Task, Time Entry
-3. Add a provider to manage state-related time entries. Store in local storage
+1. ~~Create flutter project~~
+2. ~~Add models for Project, Task, Time Entry~~
+3. ~~Add a provider to manage state-related time entries. Store in local storage~~
 4. Add screens
 
 - Home
