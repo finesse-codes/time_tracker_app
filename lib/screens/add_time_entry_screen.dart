@@ -2,105 +2,129 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/time_model.dart';
 import '../provider/time_entry_provider.dart';
+import '../provider/project_task_provider.dart';
 
 class AddTimeEntryScreen extends StatefulWidget {
   const AddTimeEntryScreen({super.key});
+
   @override
   State<AddTimeEntryScreen> createState() => _AddTimeEntryScreenState();
 }
 
 class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
   final _formKey = GlobalKey<FormState>();
-  String? projectId; // allow null
-  String? taskId; // allow null
+  String? projectId;
+  String? taskId;
   double totalTime = 0.0;
-  DateTime date = DateTime.now();
   String notes = '';
 
   @override
   Widget build(BuildContext context) {
+    final projectProvider = Provider.of<ProjectTaskProvider>(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add Time Entry')),
-
       body: Form(
         key: _formKey,
-        child: Column(
-          children: <Widget>[
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Project dropdown
             DropdownButtonFormField<String>(
-              initialValue: projectId,
-              items: <String>['project 1', 'project 2', 'project 3']
+              value: projectId,
+              items: projectProvider.projects
                   .map(
-                    (option) =>
-                        DropdownMenuItem(value: option, child: Text(option)),
+                    (project) => DropdownMenuItem(
+                      value: project.id,
+                      child: Text(project.name),
+                    ),
                   )
                   .toList(),
-              onChanged: (String? newValue) {
+              onChanged: (value) {
                 setState(() {
-                  projectId = newValue!;
+                  projectId = value;
+                  taskId = null; // reset when project changes
                 });
               },
-              decoration: InputDecoration(labelText: 'Project'),
+              decoration: const InputDecoration(labelText: 'Project'),
+              validator: (value) =>
+                  value == null ? 'Please select a project' : null,
             ),
+
+            // Task dropdown (filtered by selected project)
             DropdownButtonFormField<String>(
-              initialValue: taskId,
-              items: <String>['task 1', 'task 2', 'task 3']
-                  .map(
-                    (option) =>
-                        DropdownMenuItem(value: option, child: Text(option)),
-                  )
-                  .toList(),
-              onChanged: (String? newValue) {
+              value: taskId,
+              items: projectId == null
+                  ? []
+                  : projectProvider.tasks
+                        .where((task) => task.projectId == projectId)
+                        .map(
+                          (task) => DropdownMenuItem(
+                            value: task.id,
+                            child: Text(task.name),
+                          ),
+                        )
+                        .toList(),
+              onChanged: (value) {
                 setState(() {
-                  taskId = newValue!;
+                  taskId = value;
                 });
               },
-              decoration: InputDecoration(labelText: 'Task'),
+              decoration: const InputDecoration(labelText: 'Task'),
+              validator: (value) =>
+                  value == null ? 'Please select a task' : null,
             ),
+
+            // Time
             TextFormField(
-              decoration: InputDecoration(labelText: 'Total Time (hours)'),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Total Time (hours)',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter total time';
+                  return 'Enter time spent';
                 }
                 if (double.tryParse(value) == null) {
-                  return 'Please enter a valid number';
+                  return 'Enter a valid number';
                 }
                 return null;
               },
               onSaved: (value) => totalTime = double.parse(value!),
             ),
+
+            // Notes
             TextFormField(
-              decoration: InputDecoration(labelText: 'Notes'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter some notes';
-                }
-                return null;
-              },
-              onSaved: (value) => notes = value!,
+              decoration: const InputDecoration(labelText: 'Notes'),
+              onSaved: (value) => notes = value ?? '',
             ),
+
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
+
+                  Provider.of<TimeEntryProvider>(
+                    context,
+                    listen: false,
+                  ).addTimeEntry(
+                    TimeEntry(
+                      id: DateTime.now().toIso8601String(),
+                      projectId: projectId!,
+                      taskId: taskId!,
+                      totalTime: totalTime,
+                      date: DateTime.now(),
+                      notes: notes,
+                    ),
+                  );
+
+                  Navigator.pop(context);
                 }
-                Provider.of<TimeEntryProvider>(
-                  context,
-                  listen: false,
-                ).addTimeEntry(
-                  TimeEntry(
-                    id: DateTime.now().toString(), // simple ID generation
-                    projectId: projectId ?? 'Unknonw project',
-                    taskId: taskId ?? 'unknown task',
-                    totalTime: totalTime,
-                    date: date,
-                    notes: notes,
-                  ),
-                );
-                Navigator.pop(context);
               },
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:localstorage/localstorage.dart';
 import '../models/project_model.dart';
 import '../models/task_model.dart';
 import '../services/storage_service.dart';
+import 'time_entry_provider.dart';
 
 class ProjectTaskProvider with ChangeNotifier {
   final StorageService<Project> projectStorage;
@@ -51,5 +52,41 @@ class ProjectTaskProvider with ChangeNotifier {
     _tasks.removeWhere((t) => t.id == id);
     taskStorage.save(_tasks);
     notifyListeners();
+  }
+
+  Project? getProjectById(String id) {
+    return projects.firstWhere((project) => project.id == id);
+  }
+
+  List<Task> getTasksForProject(String projectId) {
+    return tasks.where((task) => task.projectId == projectId).toList();
+  }
+
+  // Get project name by ID
+  String getProjectName(String projectId) {
+    final project = projects.firstWhere(
+      (p) => p.id == projectId,
+      orElse: () => Project(
+        id: projectId,
+        name: "Unknown Project",
+        description: 'unknown',
+      ),
+    );
+    return project.name;
+  }
+
+  // Returns just the task name (shortcut)
+  String getTaskName(String taskId, String projectId) {
+    return getTaskById(taskId, projectId)?.name ?? "Unknown Task";
+  }
+
+  Task? getTaskById(String taskId, String projectId) {
+    try {
+      return tasks.firstWhere(
+        (t) => t.id == taskId && t.projectId == projectId,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }

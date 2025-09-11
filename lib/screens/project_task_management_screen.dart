@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_tracker/screens/add_project_screen.dart';
+import 'package:time_tracker/screens/project_detail_screen.dart';
 import '../provider/project_task_provider.dart';
 
 class ProjectTaskManagementScreen extends StatelessWidget {
@@ -28,6 +29,16 @@ class ProjectTaskManagementScreen extends StatelessWidget {
                 (project) => ListTile(
                   title: Text(project.name),
                   subtitle: Text("ID: ${project.id}"),
+                  onTap: () {
+                    // View tasks and add new tasks for this project
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ProjectDetailsScreen(projectId: project.id),
+                      ),
+                    );
+                  },
                 ),
               ),
               const Padding(
@@ -37,12 +48,22 @@ class ProjectTaskManagementScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              ...provider.tasks.map(
-                (task) => ListTile(
+              ...provider.tasks.map((task) {
+                final projectName = provider.getProjectName(task.projectId);
+                return ListTile(
                   title: Text(task.name),
-                  subtitle: Text("Project: ${task.projectId}"),
-                ),
-              ),
+                  subtitle: Text(projectName),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ProjectDetailsScreen(projectId: task.projectId),
+                      ),
+                    );
+                  },
+                );
+              }),
             ],
           );
         },
