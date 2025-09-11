@@ -1,32 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:time_tracker/screens/home_screen.dart';
-import 'package:localstorage/localstorage.dart';
-import 'provider/time_entry_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:localstorage/localstorage.dart';
 
-late final ValueNotifier<int> notifier;
+import 'provider/time_entry_provider.dart';
+import 'provider/project_task_provider.dart';
+import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialise storage once
   await initLocalStorage();
-  runApp(MyApp(localStorage: localStorage));
+  final storage = localStorage; // ✅ this is the usable instance
+
+  runApp(MyApp(localStorage: storage));
 }
 
 class MyApp extends StatelessWidget {
   final LocalStorage localStorage;
   const MyApp({super.key, required this.localStorage});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    // wrap the materialApp with the ChangeNotifierProvider
-    return ChangeNotifierProvider<TimeEntryProvider>(
-      create: (_) => TimeEntryProvider(storage: localStorage),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => TimeEntryProvider(storage: localStorage),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProjectTaskProvider(storage: localStorage),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Time Tracker',
         theme: ThemeData(primarySwatch: Colors.blue),
-        home: HomeScreen(),
+        home: const HomeScreen(),
       ),
     );
   }

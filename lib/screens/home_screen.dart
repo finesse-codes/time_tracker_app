@@ -1,42 +1,47 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:time_tracker/screens/project_task_management_screen.dart';
 import 'package:time_tracker/screens/time_entry_screen.dart';
-import '../provider/time_entry_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = const [
+    TimeEntryScreen(),
+    ProjectTaskManagementScreen(),
+  ];
+
+  final List<String> _titles = const ['Time Entries', 'Projects'];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Time Entries')),
-      body: Consumer<TimeEntryProvider>(
-        builder: (context, provider, child) {
-          return ListView.builder(
-            itemCount: provider.entries.length,
-            itemBuilder: (context, index) {
-              final entry = provider.entries[index];
-              return ListTile(
-                title: Text('${entry.projectId} - ${entry.totalTime} hours'),
-                subtitle: Text(
-                  '${entry.date.toString()} - Notes: ${entry.notes}',
-                ),
-                onTap: () {
-                  // do something - detailed view or edit view
-                },
-              );
-            },
-          );
-        },
+      appBar: AppBar(
+        title: Text(_titles[_selectedIndex]), // 👈 dynamic title
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddTimeEntryScreen()),
-          );
-        },
-        tooltip: 'Add Time Entry',
-        child: Icon(Icons.add),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.access_time),
+            label: 'Entries',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Projects'),
+        ],
       ),
     );
   }
