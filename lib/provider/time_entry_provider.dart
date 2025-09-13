@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:time_tracker/models/time_model.dart';
 import 'package:localstorage/localstorage.dart';
+import 'package:time_tracker/provider/project_task_provider.dart';
 
 enum TimeEntrySort { date, project }
 
@@ -65,10 +66,12 @@ class TimeEntryProvider with ChangeNotifier {
     }
   }
 
-  void addTimeEntry(TimeEntry entry) {
+  void addTimeEntry(TimeEntry entry, ProjectTaskProvider projectProvider) {
     _entries.add(entry);
     _saveToStorage();
     notifyListeners();
+    // update task status
+    projectProvider.markTaskInProgress(entry.taskId);
   }
 
   void deleteTimeEntry(String id) {

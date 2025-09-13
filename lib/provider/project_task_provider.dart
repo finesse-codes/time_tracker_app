@@ -3,6 +3,7 @@ import 'package:localstorage/localstorage.dart';
 import '../models/project_model.dart';
 import '../models/task_model.dart';
 import '../services/storage_service.dart';
+import '../models/time_model.dart';
 
 class ProjectTaskProvider with ChangeNotifier {
   final StorageService<Project> projectStorage;
@@ -36,6 +37,10 @@ class ProjectTaskProvider with ChangeNotifier {
   }
 
   void addTask(Task task) {
+    final project = getProjectById(task.projectId);
+    if (project == null) {
+      throw Exception("Project ${task.projectId} not found");
+    }
     _tasks.add(task);
     taskStorage.save(_tasks);
     notifyListeners();
@@ -47,10 +52,29 @@ class ProjectTaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void markTaskInProgress(String taskId) {
+    final task = getTaskById(taskId);
+    if (task != null && task.status != "in progress") {
+      task.status = "in progress";
+      taskStorage.save(_tasks);
+      notifyListeners();
+    }
+  }
+
   void deleteTask(String id) {
     _tasks.removeWhere((t) => t.id == id);
     taskStorage.save(_tasks);
     notifyListeners();
+  }
+
+  void completeTask(String taskId) {
+    final index = _tasks.indexWhere((t) => t.id == taskId);
+    if (index != -1) {
+      final task = _tasks[index];
+      _tasks[index] = task.copyWith(status: "completed");
+      taskStorage.save(_tasks);
+      notifyListeners();
+    }
   }
 
   // Return the Project object or null if not found
@@ -60,6 +84,11 @@ class ProjectTaskProvider with ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  /// ✅ New: Check if task has time entries (called from UI)
+  bool hasTimeEntries(String taskId, List<TimeEntry> entries) {
+    return entries.any((e) => e.taskId == taskId);
   }
 
   List<Task> getTasksForProject(String projectId) {

@@ -2,7 +2,7 @@ class Task {
   final String id;
   final String projectId; // ties it to a project
   final String name;
-  final String status;
+  String status;
   final String notes;
 
   Task({
@@ -12,6 +12,22 @@ class Task {
     required this.status,
     required this.notes,
   });
+
+  Task copyWith({
+    String? id,
+    String? projectId,
+    String? name,
+    String? status,
+    String? notes,
+  }) {
+    return Task(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      name: name ?? this.name,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+    );
+  }
 
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(

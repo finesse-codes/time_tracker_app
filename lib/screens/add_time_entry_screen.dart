@@ -29,53 +29,42 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Project dropdown
             DropdownButtonFormField<String>(
               initialValue: projectId,
-              items: projectProvider.projects
+              items: projectProvider.projects.map((project) {
+                return DropdownMenuItem(
+                  value: project.id,
+                  child: Text(project.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  projectId = value;
+                  taskId = null;
+                });
+              },
+              validator: (value) => value == null ? 'Select a project' : null,
+              decoration: const InputDecoration(labelText: 'Project'),
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: taskId,
+              items: projectProvider
+                  .getTasksForProject(projectId ?? "")
                   .map(
-                    (project) => DropdownMenuItem(
-                      value: project.id,
-                      child: Text(project.name),
+                    (task) => DropdownMenuItem(
+                      value: task.id,
+                      child: Text(task.name),
                     ),
                   )
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  projectId = value;
-                  taskId = null; // reset when project changes
-                });
-              },
-              decoration: const InputDecoration(labelText: 'Project'),
-              validator: (value) =>
-                  value == null ? 'Please select a project' : null,
-            ),
-
-            // Task dropdown (filtered by selected project)
-            DropdownButtonFormField<String>(
-              initialValue: taskId,
-              items: projectId == null
-                  ? []
-                  : projectProvider.tasks
-                        .where((task) => task.projectId == projectId)
-                        .map(
-                          (task) => DropdownMenuItem(
-                            value: task.id,
-                            child: Text(task.name),
-                          ),
-                        )
-                        .toList(),
-              onChanged: (value) {
-                setState(() {
                   taskId = value;
                 });
               },
+              validator: (value) => value == null ? 'Select a task' : null,
               decoration: const InputDecoration(labelText: 'Task'),
-              validator: (value) =>
-                  value == null ? 'Please select a task' : null,
             ),
-
-            // Time
             TextFormField(
               decoration: const InputDecoration(
                 labelText: 'Total Time (hours)',
@@ -84,9 +73,7 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
                 decimal: true,
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Enter time spent';
-                }
+                if (value == null || value.isEmpty) return 'Enter time spent';
                 if (double.tryParse(value) == null) {
                   return 'Enter a valid number';
                 }
@@ -94,17 +81,23 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
               },
               onSaved: (value) => totalTime = double.parse(value!),
             ),
-
-            // Notes
             TextFormField(
               decoration: const InputDecoration(labelText: 'Notes'),
               onSaved: (value) => notes = value ?? '',
             ),
-
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
+                  if (projectId == null || taskId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select a project and task'),
+                      ),
+                    );
+                    return;
+                  }
+
                   _formKey.currentState!.save();
 
                   Provider.of<TimeEntryProvider>(
@@ -119,11 +112,13 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
                       date: DateTime.now(),
                       notes: notes,
                     ),
+                    projectProvider,
                   );
 
                   Navigator.pop(context);
                 }
               },
+
               child: const Text('Save'),
             ),
           ],

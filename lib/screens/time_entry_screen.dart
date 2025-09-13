@@ -145,14 +145,61 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
       final projectName = projectProvider.getProjectName(time.projectId);
       final taskName = projectProvider.getTaskName(time.taskId);
 
-      return ListTile(
-        title: Text("$projectName (${time.totalTime.toStringAsFixed(1)} hrs)"),
-        subtitle: Text("$taskName — ${time.notes}"),
-        onTap: () {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Tapped on ${time.notes}")));
+      return Dismissible(
+        key: ValueKey(time.id),
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(left: 20),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (_) async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text("Delete Time Entry"),
+              content: Text(
+                "Are you sure you want to delete this entry?\n"
+                "Project: $projectName\n"
+                "Task: $taskName\n"
+                "Hours: ${time.totalTime}",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text("Delete"),
+                ),
+              ],
+            ),
+          );
+          return confirm ?? false;
         },
+        onDismissed: (_) {
+          Provider.of<TimeEntryProvider>(
+            context,
+            listen: false,
+          ).deleteTimeEntry(time.id);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("🗑️ Time entry deleted")),
+          );
+        },
+        child: ListTile(
+          title: Text(
+            "$projectName (${time.totalTime.toStringAsFixed(1)} hrs)",
+          ),
+          subtitle: Text("$taskName — ${time.notes}"),
+          onTap: () {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("Tapped on ${time.notes}")));
+          },
+        ),
       );
     }).toList();
   }

@@ -32,6 +32,12 @@ This is the final project for the Coursera Course, Flutter and Dart: Developing 
 3. ~~Add a provider to manage state-related time entries. Store in local storage~~
 4. Add screens
 
-- Home
-- Time Entry
-- Project and Task management
+- ~~Home~~
+- ~~Time Entry~~
+- ~~Project and Task management~~
+
+5. Functionality
+
+- ~~assign tasks to projects~~
+- ~~complete tasks~~
+- ~~delete tasks~~
