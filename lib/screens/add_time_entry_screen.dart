@@ -31,7 +31,7 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
           children: [
             // Project dropdown
             DropdownButtonFormField<String>(
-              value: projectId,
+              initialValue: projectId,
               items: projectProvider.projects
                   .map(
                     (project) => DropdownMenuItem(
@@ -53,7 +53,7 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
 
             // Task dropdown (filtered by selected project)
             DropdownButtonFormField<String>(
-              value: taskId,
+              initialValue: taskId,
               items: projectId == null
                   ? []
                   : projectProvider.tasks

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:time_tracker/screens/add_project_screen.dart';
 import 'package:time_tracker/screens/project_detail_screen.dart';
 import '../provider/project_task_provider.dart';
+import '../provider/time_entry_provider.dart';
 
 class ProjectTaskManagementScreen extends StatelessWidget {
   const ProjectTaskManagementScreen({super.key});
@@ -10,10 +11,10 @@ class ProjectTaskManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Consumer<ProjectTaskProvider>(
-        builder: (context, provider, child) {
-          if (provider.projects.isEmpty && provider.tasks.isEmpty) {
-            return const Center(child: Text("No projects or tasks yet."));
+      body: Consumer2<ProjectTaskProvider, TimeEntryProvider>(
+        builder: (context, projectProvider, timeProvider, child) {
+          if (projectProvider.projects.isEmpty) {
+            return const Center(child: Text("No projects yet."));
           }
 
           return ListView(
@@ -25,40 +26,31 @@ class ProjectTaskManagementScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              ...provider.projects.map(
-                (project) => ListTile(
+              ...projectProvider.projects.map((project) {
+                final taskStats = projectProvider.getTaskCompletion(project.id);
+                final totalHours = timeProvider.getTotalHoursForProject(
+                  project.id,
+                );
+
+                return ListTile(
                   title: Text(project.name),
-                  subtitle: Text("ID: ${project.id}"),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Tasks: ${taskStats["completed"]}/${taskStats["total"]}",
+                      ),
+                      Text("Date Started: ${project.startDate}"),
+                      Text("Total Hours: $totalHours"),
+                    ],
+                  ),
+                  isThreeLine: true,
                   onTap: () {
-                    // View tasks and add new tasks for this project
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
                             ProjectDetailsScreen(projectId: project.id),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text(
-                  "Tasks",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              ...provider.tasks.map((task) {
-                final projectName = provider.getProjectName(task.projectId);
-                return ListTile(
-                  title: Text(task.name),
-                  subtitle: Text(projectName),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ProjectDetailsScreen(projectId: task.projectId),
                       ),
                     );
                   },

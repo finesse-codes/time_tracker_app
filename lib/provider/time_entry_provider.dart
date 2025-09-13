@@ -5,11 +5,14 @@ import 'package:localstorage/localstorage.dart';
 
 enum TimeEntrySort { date, project }
 
+enum TimeEntryGroup { project, date }
+
 class TimeEntryProvider with ChangeNotifier {
   final LocalStorage storage;
 
   List<TimeEntry> _entries = [];
   TimeEntrySort _sortBy = TimeEntrySort.date;
+  TimeEntryGroup _groupBy = TimeEntryGroup.date;
 
   TimeEntryProvider({required this.storage}) {
     _loadEntriesFromStorage();
@@ -26,8 +29,14 @@ class TimeEntryProvider with ChangeNotifier {
   }
 
   TimeEntrySort get sortBy => _sortBy;
+  TimeEntryGroup get groupBy => _groupBy;
   void setSortBy(TimeEntrySort sort) {
     _sortBy = sort;
+    notifyListeners();
+  }
+
+  void setGroupBy(TimeEntryGroup group) {
+    _groupBy = group;
     notifyListeners();
   }
 
@@ -77,5 +86,10 @@ class TimeEntryProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('⚠️ Failed to save entries: $e');
     }
+  }
+
+  double getTotalHoursForProject(String projectId) {
+    final projectEntries = _entries.where((e) => e.projectId == projectId);
+    return projectEntries.fold(0.0, (sum, e) => sum + e.totalTime);
   }
 }

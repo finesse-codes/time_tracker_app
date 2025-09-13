@@ -1,9 +1,13 @@
+import 'package:intl/intl.dart';
+
 class Project {
   final String id;
   final String name;
   final String description;
+  final String startDate;
 
-  Project({required this.id, required this.name, required this.description});
+  Project({required this.id, required this.name, required this.description})
+    : startDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
 
   factory Project.fromMap(Map<String, dynamic> map) {
     return Project(

@@ -3,7 +3,6 @@ import 'package:localstorage/localstorage.dart';
 import '../models/project_model.dart';
 import '../models/task_model.dart';
 import '../services/storage_service.dart';
-import 'time_entry_provider.dart';
 
 class ProjectTaskProvider with ChangeNotifier {
   final StorageService<Project> projectStorage;
@@ -54,33 +53,34 @@ class ProjectTaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Return the Project object or null if not found
   Project? getProjectById(String id) {
-    return projects.firstWhere((project) => project.id == id);
+    try {
+      return _projects.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 
   List<Task> getTasksForProject(String projectId) {
     return tasks.where((task) => task.projectId == projectId).toList();
   }
 
-  // Get project name by ID
+  // Shortcut to get a project's name with a fallback
   String getProjectName(String projectId) {
-    final project = projects.firstWhere(
-      (p) => p.id == projectId,
-      orElse: () => Project(
-        id: projectId,
-        name: "Unknown Project",
-        description: 'unknown',
-      ),
-    );
-    return project.name;
+    return getProjectById(projectId)?.name ?? 'Unknown Project';
   }
 
-  // Returns just the task name (shortcut)
-  String getTaskName(String taskId, String projectId) {
-    return getTaskById(taskId, projectId)?.name ?? "Unknown Task";
+  // Return the Task object or null if not found
+  Task? getTaskById(String taskId) {
+    try {
+      return _tasks.firstWhere((t) => t.id == taskId);
+    } catch (_) {
+      return null;
+    }
   }
 
-  Task? getTaskById(String taskId, String projectId) {
+  Task? getTaskByIdandPID(String taskId, String projectId) {
     try {
       return tasks.firstWhere(
         (t) => t.id == taskId && t.projectId == projectId,
@@ -88,5 +88,17 @@ class ProjectTaskProvider with ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  // Shortcut to get task name with a fallback
+  String getTaskName(String taskId) {
+    return getTaskById(taskId)?.name ?? 'Unknown Task';
+  }
+
+  // Get number of tasks completed vs total
+  Map<String, int> getTaskCompletion(String projectId) {
+    final projectTasks = tasks.where((t) => t.projectId == projectId).toList();
+    final completed = projectTasks.where((t) => t.status == "completed").length;
+    return {"completed": completed, "total": projectTasks.length};
   }
 }
