@@ -86,7 +86,7 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
       );
 
       children.add(_header("$dateKey — ${totalHours.toStringAsFixed(1)} hrs"));
-      children.addAll(_entryTiles(dayEntries, context));
+      children.addAll(_entryTiles(dayEntries, context, showDate: false));
     });
 
     return ListView(children: children);
@@ -115,7 +115,7 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
       );
 
       children.add(_header("$projName — ${totalHours.toStringAsFixed(1)} hrs"));
-      children.addAll(_entryTiles(projEntries, context));
+      children.addAll(_entryTiles(projEntries, context, showDate: true));
     });
 
     return ListView(children: children);
@@ -136,7 +136,11 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
     );
   }
 
-  List<Widget> _entryTiles(List<TimeEntry> entries, BuildContext context) {
+  List<Widget> _entryTiles(
+    List<TimeEntry> entries,
+    BuildContext context, {
+    bool showDate = false,
+  }) {
     final projectProvider = Provider.of<ProjectTaskProvider>(
       context,
       listen: false,
@@ -194,7 +198,13 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
           title: Text(
             "$projectName (${time.totalTime.toStringAsFixed(1)} hrs)",
           ),
-          subtitle: Text("$taskName — ${time.notes}"),
+          subtitle: Text(
+            [
+              if (showDate) _formatDate(time.date),
+              taskName,
+              if (time.notes.isNotEmpty) time.notes,
+            ].join(" - "),
+          ),
           onTap: () {
             Navigator.push(
               context,
