@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:time_tracker/screens/project_detail_screen.dart';
 import '../provider/time_entry_provider.dart';
 import '../provider/project_task_provider.dart';
 import 'add_time_entry_screen.dart';
@@ -195,9 +196,15 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
           ),
           subtitle: Text("$taskName — ${time.notes}"),
           onTap: () {
-            ScaffoldMessenger.of(
+            Navigator.push(
               context,
-            ).showSnackBar(SnackBar(content: Text("Tapped on ${time.notes}")));
+              MaterialPageRoute(
+                builder: (context) => ProjectDetailsScreen(
+                  projectId: time.projectId,
+                  highlightedTaskId: time.taskId,
+                ),
+              ),
+            );
           },
         ),
       );
