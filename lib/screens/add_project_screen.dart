@@ -70,6 +70,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
                 // save project
                 context.read<ProjectTaskProvider>().addProject(newProject);
+
+                // Capture the navigator before the async gap
+                final navigator = Navigator.of(context);
                 // force user to create at least one task immediately
                 await _promptAddFirstTask(
                   context,
@@ -79,7 +82,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
                 // after at least one task added, pop the AddProjectScreen
                 if (!mounted) return;
-                Navigator.pop(context);
+                navigator.pop();
               },
               child: const Text('save'),
             ),

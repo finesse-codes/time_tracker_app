@@ -57,7 +57,7 @@ class _TimeEntryScreenState extends State<TimeEntryScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AddTimeEntryScreen()),
+            MaterialPageRoute(builder: (context) => AddTimeEntryScreen()),
           );
         },
         tooltip: 'Add Time Entry',
