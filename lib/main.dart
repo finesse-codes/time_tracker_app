@@ -35,6 +35,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Time Tracker',
         theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           primarySwatch: Colors.blue,
 
           scaffoldBackgroundColor: const Color.fromARGB(244, 246, 250, 254),
