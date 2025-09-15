@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:time_tracker/utils/app_button.dart';
+import 'package:time_tracker/utils/app_dropdown.dart';
+import 'package:time_tracker/utils/app_text_field.dart';
 import '../models/time_model.dart';
 import '../models/task_model.dart';
 import '../provider/time_entry_provider.dart';
@@ -7,18 +10,14 @@ import '../provider/project_task_provider.dart';
 import 'dart:async';
 
 class AddTimeEntryScreen extends StatefulWidget {
-  // projectID and TaskId can be passed in, optionally
   final String? initialProjectId;
   final String? initialTaskId;
-  bool useTimer = false;
 
-  DateTime? _startTime;
-  DateTime? _endTime;
-  Timer? _timer;
-  Duration _elapsed = Duration.zero;
-  final _hoursController = TextEditingController();
-
-  AddTimeEntryScreen({super.key, this.initialProjectId, this.initialTaskId});
+  const AddTimeEntryScreen({
+    super.key,
+    this.initialProjectId,
+    this.initialTaskId,
+  });
 
   @override
   State<AddTimeEntryScreen> createState() => _AddTimeEntryScreenState();
@@ -26,14 +25,24 @@ class AddTimeEntryScreen extends StatefulWidget {
 
 class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  // Project/task fields
   String? projectId;
   String? taskId;
+  final _newTaskController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  // Time fields
   double totalTime = 0.0;
   String notes = '';
+  final _timeController = TextEditingController();
+
+  // Timer state
+  bool _useTimer = false;
   bool _isRunning = false;
   bool _isPaused = false;
-  final _newTaskController = TextEditingController();
-  final _timeController = TextEditingController();
+  Duration _elapsed = Duration.zero;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -45,28 +54,31 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
   @override
   void dispose() {
     _newTaskController.dispose();
+    _timeController.dispose();
+    _notesController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
+  // ---------------- TIMER METHODS ----------------
   void _startTimer() {
-    if (_isRunning && !_isPaused) return; // already running
-    _isRunning = true;
-    _isPaused = false;
+    _timer?.cancel();
+    setState(() {
+      _isRunning = true;
+      _isPaused = false;
+    });
 
-    widget._timer?.cancel();
-    widget._timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
-        widget._elapsed = Duration(seconds: widget._elapsed.inSeconds + 1);
+        _elapsed = Duration(seconds: _elapsed.inSeconds + 1);
       });
     });
   }
 
   void _pauseTimer() {
     if (_isRunning && !_isPaused) {
-      widget._timer?.cancel();
-      setState(() {
-        _isPaused = true;
-      });
+      _timer?.cancel();
+      setState(() => _isPaused = true);
     }
   }
 
@@ -77,19 +89,22 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
   }
 
   void _stopTimer() {
-    widget._timer?.cancel();
+    _timer?.cancel();
     setState(() {
       _isRunning = false;
       _isPaused = false;
     });
 
-    // convert elapsed time into hours (decimal)
-    final hours = widget._elapsed.inHours;
-    final minutes = widget._elapsed.inMinutes.remainder(60);
-
-    // Fill in total time automatically (with HH:mm format)
+    // Fill in total time in HH:mm for the time field
+    final hours = _elapsed.inHours;
+    final minutes = _elapsed.inMinutes.remainder(60);
     _timeController.text =
         '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+
+    // update totalTime in hours
+    setState(() {
+      totalTime = _elapsed.inMinutes / 60.0;
+    });
   }
 
   String _formatDuration(Duration d) {
@@ -99,6 +114,7 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
     return "$hours:$minutes:$seconds";
   }
 
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     final projectProvider = Provider.of<ProjectTaskProvider>(context);
@@ -110,20 +126,69 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Switch between manual hours and timer
-            SwitchListTile(
-              title: const Text("Use Timer"),
-              value: widget.useTimer,
-              onChanged: (val) {
-                setState(() {
-                  widget.useTimer = val;
-                });
-              },
+            // ---------------- TIMER BUTTON ----------------
+            // ---------------- TIMER BUTTON ----------------
+            Column(
+              children: [
+                // Show elapsed time text if timer has ever started
+                if (_elapsed.inSeconds > 0 || _isRunning)
+                  Text(
+                    _formatDuration(_elapsed),
+                    style: TextStyle(
+                      fontSize: 60,
+                      color: Colors.blue.shade300,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isRunning && !_isPaused)
+                      // Only pause button while running
+                      IconButton(
+                        iconSize: 50,
+                        color: Colors.blue,
+                        icon: const Icon(Icons.pause_circle_filled),
+                        onPressed: _pauseTimer,
+                      )
+                    else if (_isPaused)
+                      // Resume + Stop when paused
+                      Row(
+                        children: [
+                          IconButton(
+                            iconSize: 50,
+                            color: Colors.blue,
+                            icon: const Icon(Icons.play_circle_fill_outlined),
+                            onPressed: _resumeTimer,
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            iconSize: 50,
+                            color: Colors.blue,
+                            icon: const Icon(Icons.stop_circle_outlined),
+                            onPressed: _stopTimer,
+                          ),
+                        ],
+                      )
+                    else
+                      // Initial state → show start button
+                      IconButton(
+                        iconSize: 50,
+                        color: Colors.blue,
+                        icon: const Icon(Icons.play_circle_fill_outlined),
+                        onPressed: _startTimer,
+                      ),
+                  ],
+                ),
+              ],
             ),
-            // If using timer → show elapsed + start/stop
-            if (widget.useTimer) ...[
+
+            // ---------------- TIMER DISPLAY ----------------
+            if (_useTimer) ...[
               Text(
-                _formatDuration(widget._elapsed),
+                _formatDuration(_elapsed),
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -162,197 +227,172 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
                   ],
                 ],
               ),
+              const SizedBox(height: 12),
             ] else ...[
-              // Manual time entry
-              TextFormField(
-                controller: widget._hoursController,
-                decoration: const InputDecoration(
-                  labelText: 'Total Time (hours)',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+              // ---------------- MANUAL TIME ENTRY ----------------
+              AppTextField(
+                controller: _timeController,
+                label: 'Total Time',
+                hintText: 'e.g. 1:30 for 1 hour 30 minutes',
+                keyboardType: TextInputType.text,
                 validator: (value) {
-                  if (!widget.useTimer) {
+                  if (!_useTimer) {
                     if (value == null || value.isEmpty) {
                       return 'Enter time spent';
                     }
-                    if (double.tryParse(value) == null) {
-                      return 'Enter a valid number';
+                    final parts = value.split(':');
+                    if (parts.length != 2) return 'Use HH:mm format';
+                    final hours = int.tryParse(parts[0]);
+                    final minutes = int.tryParse(parts[1]);
+                    if (hours == null || minutes == null || minutes >= 60) {
+                      return 'Enter a valid time (e.g. 2:15)';
                     }
                   }
                   return null;
                 },
                 onSaved: (value) {
-                  if (!widget.useTimer) {
-                    totalTime = double.parse(value!);
+                  if (!_useTimer) {
+                    final parts = value!.split(':');
+                    final hours = int.parse(parts[0]);
+                    final minutes = int.parse(parts[1]);
+                    totalTime = hours + minutes / 60.0;
                   }
                 },
               ),
+              const SizedBox(height: 12),
             ],
-            const SizedBox(height: 12),
-            // Project dropdown
-            DropdownButtonFormField<String>(
+
+            // ---------------- PROJECT DROPDOWN ----------------
+            AppDropdown(
               initialValue: projectId,
-              items: projectProvider.projects.map((project) {
-                return DropdownMenuItem(
-                  value: project.id,
-                  child: Text(project.name),
-                );
-              }).toList(),
-              onChanged: (value) {
+              items: projectProvider.projects
+                  .map(
+                    (p) => DropdownMenuItem(
+                      value: p.id,
+                      child: Text(p.name, overflow: TextOverflow.ellipsis),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (val) {
                 setState(() {
-                  projectId = value;
+                  projectId = val;
                   taskId = null;
                   _newTaskController.clear();
                 });
               },
-              validator: (value) => value == null ? 'Select a project' : null,
-              decoration: const InputDecoration(labelText: 'Project'),
+              validator: (val) => val == null ? 'Select a project' : null,
+              label: 'Project',
             ),
 
             const SizedBox(height: 12),
 
-            // Task dropdown (optional)
+            // ---------------- TASK DROPDOWN ----------------
             if (projectId != null)
-              DropdownButtonFormField<String>(
+              AppDropdown(
                 initialValue: taskId,
                 items: projectProvider
                     .getTasksForProject(projectId!)
                     .map(
-                      (task) => DropdownMenuItem(
-                        value: task.id,
-                        child: Text(task.name),
+                      (t) => DropdownMenuItem(
+                        value: t.id,
+                        child: Text(t.name, overflow: TextOverflow.ellipsis),
                       ),
                     )
                     .toList(),
-                onChanged: (value) {
+                onChanged: (val) {
                   setState(() {
-                    taskId = value;
+                    taskId = val;
                     _newTaskController.clear();
                   });
                 },
-                decoration: const InputDecoration(
-                  labelText: 'Select an existing task (optional)',
-                ),
+                label: 'Select an existing task (optional)',
               ),
 
             const SizedBox(height: 12),
 
-            // New task input
-            TextFormField(
+            // ---------------- NEW TASK INPUT ----------------
+            AppTextField(
               controller: _newTaskController,
-              decoration: const InputDecoration(
-                labelText: 'Or enter a new task',
-              ),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  setState(() {
-                    taskId = null; // clear selection if typing new task
-                  });
+              label: 'optional - create a new task',
+              onChanged: (val) {
+                if (val.isNotEmpty) {
+                  setState(() => taskId = null);
                 }
               },
+              hintText: 'new task',
             ),
 
             const SizedBox(height: 12),
 
-            // Time
-            TextFormField(
-              controller: _timeController,
-              decoration: const InputDecoration(
-                labelText: 'Total Time',
-                hintText: 'e.g. 1:30 for 1 hour 30 minutes',
-              ),
-              keyboardType: TextInputType.text,
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Enter time spent';
-                final parts = value.split(':');
-                if (parts.length != 2) return 'Use HH:mm format';
-                final hours = int.tryParse(parts[0]);
-                final minutes = int.tryParse(parts[1]);
-                if (hours == null || minutes == null || minutes >= 60) {
-                  return 'Enter a valud time (e.g. 2:15)';
-                }
-                return null;
-              },
-
-              onSaved: (value) {
-                final parts = value!.split(':');
-                final hours = int.parse(parts[0]);
-                final minutes = int.parse(parts[1]);
-                totalTime = hours + (minutes / 60.0); // store as decimal
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // Notes
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Notes'),
-              onSaved: (value) => notes = value ?? '',
+            // ---------------- NOTES ----------------
+            AppTextField(
+              label: 'Notes',
+              controller: _notesController,
+              onSaved: (val) => notes = val ?? '',
             ),
 
             const SizedBox(height: 16),
 
-            ElevatedButton(
+            // ---------------- SAVE BUTTON ----------------
+            AppButton(
+              text: "save",
+              variant: ButtonVariant.solid,
+              type: ButtonType.primary,
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  if (projectId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a project')),
-                    );
-                    return;
-                  }
+                if (!_formKey.currentState!.validate()) return;
 
-                  // Either use selected task or create new task
-                  String finalTaskId;
-                  if (_newTaskController.text.trim().isNotEmpty) {
-                    final newTask = Task(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      projectId: projectId!,
-                      name: _newTaskController.text.trim(),
-                      status: 'not started',
-                      notes: '',
-                    );
-                    projectProvider.addTask(newTask);
-                    finalTaskId = newTask.id;
-                  } else if (taskId != null) {
-                    finalTaskId = taskId!;
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please select or enter a task'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  _formKey.currentState!.save();
-
-                  // If timer mode -> derive hours from elapsed
-                  if (widget.useTimer) {
-                    totalTime = widget._elapsed.inMinutes / 60.0;
-                  }
-
-                  Provider.of<TimeEntryProvider>(
-                    context,
-                    listen: false,
-                  ).addTimeEntry(
-                    TimeEntry(
-                      id: DateTime.now().toIso8601String(),
-                      projectId: projectId!,
-                      taskId: finalTaskId,
-                      totalTime: totalTime,
-                      date: DateTime.now(),
-                      notes: notes,
-                    ),
-                    projectProvider,
+                if (projectId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a project')),
                   );
-
-                  Navigator.pop(context);
+                  return;
                 }
+
+                _formKey.currentState!.save();
+
+                // Determine final task
+                String finalTaskId;
+                if (_newTaskController.text.trim().isNotEmpty) {
+                  final newTask = Task(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    projectId: projectId!,
+                    name: _newTaskController.text.trim(),
+                    status: 'not started',
+                    notes: '',
+                  );
+                  projectProvider.addTask(newTask);
+                  finalTaskId = newTask.id;
+                } else if (taskId != null) {
+                  finalTaskId = taskId!;
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please select or enter a task'),
+                    ),
+                  );
+                  return;
+                }
+
+                // Timer mode → derive hours from elapsed
+                if (_useTimer) totalTime = _elapsed.inMinutes / 60.0;
+
+                Provider.of<TimeEntryProvider>(
+                  context,
+                  listen: false,
+                ).addTimeEntry(
+                  TimeEntry(
+                    id: DateTime.now().toIso8601String(),
+                    projectId: projectId!,
+                    taskId: finalTaskId,
+                    totalTime: totalTime,
+                    date: DateTime.now(),
+                    notes: notes,
+                  ),
+                  projectProvider,
+                );
+
+                Navigator.pop(context);
               },
-              child: const Text('Save'),
             ),
           ],
         ),

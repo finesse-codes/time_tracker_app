@@ -41,3 +41,4 @@ This is the final project for the Coursera Course, Flutter and Dart: Developing 
 - ~~assign tasks to projects~~
 - ~~complete tasks~~
 - ~~delete tasks~~
+- ~~add a timer~~
